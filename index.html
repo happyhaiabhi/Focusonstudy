@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Focus · Deep Work</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --bg: #0a0d14;
@@ -16,10 +17,7 @@
     --red: #ff6b6b;
     --text: #c8d8e8;
     --muted: #4a6070;
-    --glow-blue: rgba(79,195,247,0.15);
-    --glow-gold: rgba(212,168,83,0.15);
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
@@ -30,7 +28,6 @@
     overflow-x: hidden;
   }
 
-  /* Grain overlay */
   body::before {
     content: '';
     position: fixed; inset: 0;
@@ -38,29 +35,108 @@
     pointer-events: none; z-index: 0; opacity: 0.4;
   }
 
+  /* ── LOGIN SCREEN ── */
+  #loginScreen {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+    background: var(--bg);
+  }
+
+  .login-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 48px 40px;
+    text-align: center;
+    max-width: 360px; width: 90%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .login-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--gold), var(--green));
+  }
+
+  .login-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3rem;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    text-shadow: 0 0 40px rgba(79,195,247,0.5);
+    margin-bottom: 8px;
+  }
+
+  .login-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 36px;
+  }
+
+  .btn-github {
+    width: 100%;
+    padding: 14px 20px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    transition: all 0.2s;
+  }
+
+  .btn-github:hover {
+    background: rgba(79,195,247,0.08);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .btn-github svg { width: 18px; height: 18px; fill: currentColor; }
+
+  .login-note {
+    margin-top: 20px;
+    font-size: 0.68rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    line-height: 1.6;
+  }
+
+  /* ── MAIN APP ── */
+  #appScreen { display: none; }
+
   .layout {
     position: relative; z-index: 1;
     max-width: 860px;
     margin: 0 auto;
-    padding: 40px 24px;
+    padding: 36px 24px;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
   }
 
-  /* HEADER */
   .header {
     grid-column: 1 / -1;
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     padding-bottom: 20px;
     border-bottom: 1px solid var(--border);
+    gap: 12px;
   }
+
+  .header-left { display: flex; align-items: baseline; gap: 16px; }
 
   .header h1 {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 2.8rem;
+    font-size: 2.6rem;
     letter-spacing: 0.08em;
     color: var(--accent);
     text-shadow: 0 0 30px rgba(79,195,247,0.4);
@@ -68,11 +144,65 @@
 
   .date-label {
     font-family: 'DM Mono', monospace;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: var(--muted);
-    letter-spacing: 0.12em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
   }
+
+  .user-area {
+    display: flex; align-items: center; gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .user-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    object-fit: cover;
+  }
+
+  .user-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    max-width: 100px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  .sync-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    border-radius: 20px;
+    background: rgba(82,227,160,0.1);
+    color: var(--green);
+    border: 1px solid rgba(82,227,160,0.2);
+  }
+
+  .sync-badge.syncing {
+    background: rgba(212,168,83,0.1);
+    color: var(--gold);
+    border-color: rgba(212,168,83,0.2);
+    animation: blink 1s ease-in-out infinite;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .btn-logout {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    transition: all 0.2s;
+  }
+  .btn-logout:hover { color: var(--red); border-color: var(--red); }
 
   /* TIMER CARDS */
   .timer-card {
@@ -80,135 +210,76 @@
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 28px 24px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 18px;
-    position: relative;
-    overflow: hidden;
-    transition: border-color 0.3s;
+    display: flex; flex-direction: column; align-items: center; gap: 18px;
+    position: relative; overflow: hidden;
+    transition: border-color 0.3s, box-shadow 0.3s;
   }
 
   .timer-card::before {
     content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
     border-radius: 12px 12px 0 0;
   }
 
   .timer-card.pomodoro::before { background: linear-gradient(90deg, var(--accent), transparent); }
-  .timer-card.deep::before { background: linear-gradient(90deg, var(--gold), transparent); }
+  .timer-card.deep::before     { background: linear-gradient(90deg, var(--gold), transparent); }
 
-  .timer-card.running {
-    border-color: rgba(79,195,247,0.3);
-    box-shadow: 0 0 40px rgba(79,195,247,0.07);
-  }
-  .timer-card.deep.running {
-    border-color: rgba(212,168,83,0.3);
-    box-shadow: 0 0 40px rgba(212,168,83,0.07);
-  }
+  .timer-card.running { border-color: rgba(79,195,247,0.3); box-shadow: 0 0 40px rgba(79,195,247,0.07); }
+  .timer-card.deep.running { border-color: rgba(212,168,83,0.3); box-shadow: 0 0 40px rgba(212,168,83,0.07); }
 
   .card-tag {
     font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    padding: 4px 10px;
-    border-radius: 20px;
-    align-self: flex-start;
+    font-size: 0.63rem; letter-spacing: 0.2em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 20px; align-self: flex-start;
   }
-
   .pomodoro .card-tag { background: rgba(79,195,247,0.1); color: var(--accent); }
-  .deep .card-tag { background: rgba(212,168,83,0.1); color: var(--gold); }
+  .deep .card-tag     { background: rgba(212,168,83,0.1); color: var(--gold); }
 
   .card-title {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.5rem;
-    letter-spacing: 0.1em;
-    align-self: flex-start;
-    margin-top: -8px;
+    font-size: 1.5rem; letter-spacing: 0.1em; align-self: flex-start; margin-top: -8px;
   }
 
-  .pomodoro .card-title { color: var(--text); }
-  .deep .card-title { color: var(--text); }
+  .credit-label { font-size: 0.72rem; color: var(--muted); align-self: flex-start; margin-top: -12px; }
 
-  .credit-label {
-    font-size: 0.72rem;
-    color: var(--muted);
-    align-self: flex-start;
-    margin-top: -12px;
-  }
-
-  /* SVG Ring Timer */
-  .ring-wrap {
-    position: relative;
-    width: 150px; height: 150px;
-    flex-shrink: 0;
-  }
-
+  .ring-wrap { position: relative; width: 150px; height: 150px; flex-shrink: 0; }
   .ring-wrap svg { transform: rotate(-90deg); }
-
   .ring-track { fill: none; stroke: var(--border); stroke-width: 6; }
   .ring-progress {
-    fill: none;
-    stroke-width: 6;
-    stroke-linecap: round;
+    fill: none; stroke-width: 6; stroke-linecap: round;
     transition: stroke-dashoffset 1s linear;
   }
-
   .pomodoro .ring-progress { stroke: var(--accent); filter: drop-shadow(0 0 6px rgba(79,195,247,0.5)); }
-  .deep .ring-progress { stroke: var(--gold); filter: drop-shadow(0 0 6px rgba(212,168,83,0.5)); }
+  .deep .ring-progress     { stroke: var(--gold);   filter: drop-shadow(0 0 6px rgba(212,168,83,0.5)); }
 
   .ring-time {
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
-    font-family: 'DM Mono', monospace;
-    font-size: 1.8rem;
-    font-weight: 500;
-    letter-spacing: 0.05em;
+    font-family: 'DM Mono', monospace; font-size: 1.8rem; font-weight: 500; letter-spacing: 0.05em;
   }
-
   .pomodoro .ring-time { color: var(--accent); }
-  .deep .ring-time { color: var(--gold); }
+  .deep .ring-time     { color: var(--gold); }
 
-  /* Buttons */
   .btn-row { display: flex; gap: 10px; width: 100%; }
 
   .btn {
-    flex: 1;
-    padding: 10px 16px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text);
-    font-family: 'DM Mono', monospace;
-    font-size: 0.72rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.2s;
+    flex: 1; padding: 10px 16px; border-radius: 8px;
+    border: 1px solid var(--border); background: transparent; color: var(--text);
+    font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 0.1em;
+    text-transform: uppercase; cursor: pointer; transition: all 0.2s;
   }
-
   .btn:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.15); }
 
-  .btn-start {
-    background: rgba(79,195,247,0.1);
-    border-color: var(--accent);
-    color: var(--accent);
-  }
+  .btn-start { background: rgba(79,195,247,0.1); border-color: var(--accent); color: var(--accent); }
   .btn-start:hover { background: rgba(79,195,247,0.2); }
-
-  .deep .btn-start {
-    background: rgba(212,168,83,0.1);
-    border-color: var(--gold);
-    color: var(--gold);
-  }
+  .deep .btn-start { background: rgba(212,168,83,0.1); border-color: var(--gold); color: var(--gold); }
   .deep .btn-start:hover { background: rgba(212,168,83,0.2); }
-
   .btn-reset { color: var(--muted); font-size: 0.68rem; }
 
-  /* STATS PANEL */
+  @keyframes pulse-ring { 0%,100%{opacity:1} 50%{opacity:0.6} }
+  .timer-card.running .ring-time { animation: pulse-ring 2s ease-in-out infinite; }
+
+  /* STATS */
   .stats-panel {
     grid-column: 1 / -1;
     background: var(--surface);
@@ -218,291 +289,239 @@
   }
 
   .stats-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
   }
 
-  .stats-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.2rem;
-    letter-spacing: 0.1em;
-    color: var(--text);
-  }
+  .stats-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.1em; }
 
   .stats-clear {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    color: var(--muted);
-    letter-spacing: 0.1em;
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 4px 10px;
-    cursor: pointer;
-    transition: all 0.2s;
+    font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--muted);
+    letter-spacing: 0.1em; background: transparent; border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 10px; cursor: pointer; transition: all 0.2s;
   }
   .stats-clear:hover { color: var(--red); border-color: var(--red); }
 
   .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-bottom: 24px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;
   }
 
   .stat-box {
-    background: rgba(255,255,255,0.02);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 16px;
-    text-align: center;
+    background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; text-align: center;
   }
 
-  .stat-num {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 2.2rem;
-    line-height: 1;
-    margin-bottom: 4px;
-  }
-
-  .stat-num.blue { color: var(--accent); }
-  .stat-num.gold { color: var(--gold); }
+  .stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; line-height: 1; margin-bottom: 4px; }
+  .stat-num.blue  { color: var(--accent); }
+  .stat-num.gold  { color: var(--gold); }
   .stat-num.green { color: var(--green); }
 
   .stat-label {
-    font-size: 0.68rem;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.12em; font-family: 'DM Mono', monospace;
   }
-
-  /* Progress bar for today's hours */
-  .progress-section { margin-top: 4px; }
 
   .progress-label {
-    display: flex;
-    justify-content: space-between;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.68rem;
-    color: var(--muted);
-    margin-bottom: 8px;
+    display: flex; justify-content: space-between;
+    font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); margin-bottom: 8px;
   }
 
-  .progress-track {
-    height: 6px;
-    background: var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-  }
-
+  .progress-track { height: 6px; background: var(--border); border-radius: 10px; overflow: hidden; }
   .progress-fill {
-    height: 100%;
-    border-radius: 10px;
+    height: 100%; border-radius: 10px;
     background: linear-gradient(90deg, var(--accent), var(--green));
-    transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: width 0.8s cubic-bezier(0.34,1.56,0.64,1);
     box-shadow: 0 0 10px rgba(79,195,247,0.4);
   }
 
-  /* SESSION LOG */
+  /* LOG */
   .log-section { grid-column: 1 / -1; }
+  .log-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 12px; }
 
-  .log-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.1rem;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-    margin-bottom: 12px;
-  }
-
-  .log-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    max-height: 200px;
-    overflow-y: auto;
-  }
-
+  .log-list { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
   .log-list::-webkit-scrollbar { width: 3px; }
-  .log-list::-webkit-scrollbar-track { background: transparent; }
   .log-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
 
   .log-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 14px;
-    background: rgba(255,255,255,0.02);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.72rem;
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 14px; background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border); border-radius: 8px;
+    font-family: 'DM Mono', monospace; font-size: 0.72rem;
     animation: fadeSlide 0.4s ease;
   }
 
-  @keyframes fadeSlide {
-    from { opacity: 0; transform: translateY(-6px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+  @keyframes fadeSlide { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
 
-  .log-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
+  .log-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
   .log-dot.blue { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
   .log-dot.gold { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
 
-  .log-time { color: var(--muted); flex: 0 0 50px; }
-  .log-desc { color: var(--text); flex: 1; }
+  .log-time  { color: var(--muted); flex: 0 0 55px; }
+  .log-desc  { color: var(--text); flex: 1; }
   .log-credit { color: var(--green); margin-left: auto; }
 
   .empty-log {
-    text-align: center;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.72rem;
-    color: var(--muted);
-    padding: 20px;
-    letter-spacing: 0.1em;
+    text-align: center; font-family: 'DM Mono', monospace;
+    font-size: 0.72rem; color: var(--muted); padding: 20px; letter-spacing: 0.1em;
   }
 
-  /* NOTIFICATION TOAST */
+  /* TOAST */
   .toast {
-    position: fixed;
-    bottom: 30px; right: 30px;
-    background: var(--surface);
-    border: 1px solid var(--green);
-    border-radius: 12px;
-    padding: 16px 20px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    box-shadow: 0 0 40px rgba(82,227,160,0.2);
-    z-index: 1000;
-    transform: translateY(120%);
-    opacity: 0;
-    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: fixed; bottom: 30px; right: 30px;
+    background: var(--surface); border: 1px solid var(--green); border-radius: 12px;
+    padding: 16px 20px; display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 0 40px rgba(82,227,160,0.2); z-index: 1000;
+    transform: translateY(120%); opacity: 0;
+    transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1);
     max-width: 320px;
   }
-
   .toast.show { transform: translateY(0); opacity: 1; }
-
   .toast-icon { font-size: 1.4rem; flex-shrink: 0; }
-
   .toast-text { font-family: 'DM Sans', sans-serif; font-size: 0.85rem; }
   .toast-text strong { display: block; color: var(--green); margin-bottom: 2px; }
   .toast-text span { color: var(--muted); font-size: 0.78rem; }
 
-  /* Running pulse animation */
-  @keyframes pulse-ring {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
+  /* LOADING OVERLAY */
+  #loadingOverlay {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200;
   }
 
-  .timer-card.running .ring-time { animation: pulse-ring 2s ease-in-out infinite; }
+  .loading-text {
+    font-family: 'DM Mono', monospace; font-size: 0.8rem;
+    color: var(--muted); letter-spacing: 0.2em; text-transform: uppercase;
+    animation: blink 1.2s ease-in-out infinite;
+  }
 
-  /* Responsive */
   @media (max-width: 580px) {
     .layout { grid-template-columns: 1fr; }
     .stats-grid { grid-template-columns: 1fr 1fr; }
-    .stats-grid .stat-box:last-child { grid-column: 1 / -1; }
+    .stats-grid .stat-box:last-child { grid-column: 1/-1; }
+    .header { flex-wrap: wrap; }
+    .user-name { display: none; }
   }
 </style>
 </head>
 <body>
 
-<div class="layout">
-
-  <!-- HEADER -->
-  <header class="header">
-    <h1>FOCUS</h1>
-    <span class="date-label" id="dateLabel">—</span>
-  </header>
-
-  <!-- POMODORO CARD (25 min = 0.5 hr) -->
-  <div class="timer-card pomodoro" id="card25">
-    <span class="card-tag">Pomodoro</span>
-    <div class="card-title">25-Minute Sprint</div>
-    <div class="credit-label">Counts as ½ hour of study</div>
-    <div class="ring-wrap">
-      <svg width="150" height="150" viewBox="0 0 150 150">
-        <circle class="ring-track" cx="75" cy="75" r="64"/>
-        <circle class="ring-progress" id="ring25" cx="75" cy="75" r="64"
-          stroke-dasharray="402.12"
-          stroke-dashoffset="0"/>
-      </svg>
-      <div class="ring-time" id="time25">25:00</div>
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-start" id="btn25" onclick="toggleTimer(25)">Start</button>
-      <button class="btn btn-reset" onclick="resetTimer(25)">Reset</button>
-    </div>
-  </div>
-
-  <!-- DEEP WORK CARD (52 min = 1 hr) -->
-  <div class="timer-card deep" id="card52">
-    <span class="card-tag">Deep Work</span>
-    <div class="card-title">52-Minute Block</div>
-    <div class="credit-label">Counts as 1 full hour of study</div>
-    <div class="ring-wrap">
-      <svg width="150" height="150" viewBox="0 0 150 150">
-        <circle class="ring-track" cx="75" cy="75" r="64"/>
-        <circle class="ring-progress" id="ring52" cx="75" cy="75" r="64"
-          stroke-dasharray="402.12"
-          stroke-dashoffset="0"/>
-      </svg>
-      <div class="ring-time" id="time52">52:00</div>
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-start" id="btn52" onclick="toggleTimer(52)">Start</button>
-      <button class="btn btn-reset" onclick="resetTimer(52)">Reset</button>
-    </div>
-  </div>
-
-  <!-- STATS PANEL -->
-  <div class="stats-panel">
-    <div class="stats-header">
-      <div class="stats-title">Today's Progress</div>
-      <button class="stats-clear" onclick="clearToday()">Clear Today</button>
-    </div>
-    <div class="stats-grid">
-      <div class="stat-box">
-        <div class="stat-num blue" id="statPomodoros">0</div>
-        <div class="stat-label">Pomodoros Done</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-num gold" id="statDeep">0</div>
-        <div class="stat-label">Deep Blocks Done</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-num green" id="statHours">0.0</div>
-        <div class="stat-label">Hours Logged</div>
-      </div>
-    </div>
-    <div class="progress-section">
-      <div class="progress-label">
-        <span>Daily target: 8 hrs</span>
-        <span id="progressPct">0%</span>
-      </div>
-      <div class="progress-track">
-        <div class="progress-fill" id="progressFill" style="width:0%"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SESSION LOG -->
-  <div class="log-section">
-    <div class="log-title">Session Log</div>
-    <div class="log-list" id="logList">
-      <div class="empty-log">No sessions yet — start a timer above</div>
-    </div>
-  </div>
-
+<!-- LOADING -->
+<div id="loadingOverlay">
+  <div class="loading-text">Initialising...</div>
 </div>
 
-<!-- TOAST NOTIFICATION -->
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" style="display:none">
+  <div class="login-card">
+    <div class="login-logo">FOCUS</div>
+    <div class="login-sub">Deep Work · Cross-Device Sync</div>
+    <button class="btn-github" onclick="loginWithGitHub()">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+      </svg>
+      Continue with GitHub
+    </button>
+    <div class="login-note">Your sessions sync across all your devices.<br>Data is private to your account.</div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="appScreen">
+  <div class="layout">
+
+    <header class="header">
+      <div class="header-left">
+        <h1>FOCUS</h1>
+        <span class="date-label" id="dateLabel">—</span>
+      </div>
+      <div class="user-area">
+        <span class="sync-badge" id="syncBadge">● SYNCED</span>
+        <img class="user-avatar" id="userAvatar" src="" alt="" onerror="this.style.display='none'">
+        <span class="user-name" id="userName"></span>
+        <button class="btn-logout" onclick="logout()">Sign out</button>
+      </div>
+    </header>
+
+    <!-- POMODORO -->
+    <div class="timer-card pomodoro" id="card25">
+      <span class="card-tag">Pomodoro</span>
+      <div class="card-title">25-Minute Sprint</div>
+      <div class="credit-label">Counts as ½ hour of study</div>
+      <div class="ring-wrap">
+        <svg width="150" height="150" viewBox="0 0 150 150">
+          <circle class="ring-track" cx="75" cy="75" r="64"/>
+          <circle class="ring-progress" id="ring25" cx="75" cy="75" r="64"
+            stroke-dasharray="402.12" stroke-dashoffset="0"/>
+        </svg>
+        <div class="ring-time" id="time25">25:00</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-start" id="btn25" onclick="toggleTimer(25)">Start</button>
+        <button class="btn btn-reset" onclick="resetTimer(25)">Reset</button>
+      </div>
+    </div>
+
+    <!-- DEEP WORK -->
+    <div class="timer-card deep" id="card52">
+      <span class="card-tag">Deep Work</span>
+      <div class="card-title">52-Minute Block</div>
+      <div class="credit-label">Counts as 1 full hour of study</div>
+      <div class="ring-wrap">
+        <svg width="150" height="150" viewBox="0 0 150 150">
+          <circle class="ring-track" cx="75" cy="75" r="64"/>
+          <circle class="ring-progress" id="ring52" cx="75" cy="75" r="64"
+            stroke-dasharray="402.12" stroke-dashoffset="0"/>
+        </svg>
+        <div class="ring-time" id="time52">52:00</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-start" id="btn52" onclick="toggleTimer(52)">Start</button>
+        <button class="btn btn-reset" onclick="resetTimer(52)">Reset</button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-panel">
+      <div class="stats-header">
+        <div class="stats-title">Today's Progress</div>
+        <button class="stats-clear" onclick="clearToday()">Clear Today</button>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-num blue" id="statPomodoros">0</div>
+          <div class="stat-label">Pomodoros Done</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num gold" id="statDeep">0</div>
+          <div class="stat-label">Deep Blocks Done</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num green" id="statHours">0.0</div>
+          <div class="stat-label">Hours Logged</div>
+        </div>
+      </div>
+      <div>
+        <div class="progress-label">
+          <span>Daily target: 8 hrs</span>
+          <span id="progressPct">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOG -->
+    <div class="log-section">
+      <div class="log-title">Session Log</div>
+      <div class="log-list" id="logList">
+        <div class="empty-log">No sessions yet — start a timer above</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- TOAST -->
 <div class="toast" id="toast">
   <div class="toast-icon" id="toastIcon">✅</div>
   <div class="toast-text">
@@ -512,61 +531,117 @@
 </div>
 
 <script>
-// ──────────────────────────────────────────────
-//  STATE
-// ──────────────────────────────────────────────
+// ── SUPABASE INIT ──────────────────────────────
+const SUPABASE_URL = 'https://euwdlvbhixvvaqqmjdio.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1d2RsdmJoaXh2dmFxcW1qZGlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3OTc2MDcsImV4cCI6MjA5MTM3MzYwN30.MNnXqiyVulLb6U0M--W1O9rEmgL7uBYS1TXJjdUnc70';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── TIMER STATE ────────────────────────────────
 const CIRC = 402.12;
-const DAILY_TARGET = 8; // hours
+const DAILY_TARGET = 8;
+let currentUser = null;
 
 let timers = {
   25: { interval: null, remaining: 25 * 60, total: 25 * 60, running: false },
   52: { interval: null, remaining: 52 * 60, total: 52 * 60, running: false }
 };
 
-// ──────────────────────────────────────────────
-//  STORAGE HELPERS  (keyed by today's date)
-// ──────────────────────────────────────────────
-function todayKey() {
-  return 'focus_' + new Date().toISOString().slice(0, 10);
+// ── AUTH ───────────────────────────────────────
+async function loginWithGitHub() {
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'github',
+    options: { redirectTo: window.location.href }
+  });
+  if (error) alert('Login failed: ' + error.message);
 }
 
-function loadData() {
-  try {
-    const raw = localStorage.getItem(todayKey());
-    if (raw) return JSON.parse(raw);
-  } catch(e) {}
-  return { pomodoros: 0, deep: 0, hours: 0, log: [] };
+async function logout() {
+  await sb.auth.signOut();
+  currentUser = null;
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
 }
 
-function saveData(data) {
-  try { localStorage.setItem(todayKey(), JSON.stringify(data)); } catch(e) {}
+// ── DB HELPERS ─────────────────────────────────
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
 }
 
-// ──────────────────────────────────────────────
-//  TIMER LOGIC
-// ──────────────────────────────────────────────
+async function loadTodayStats() {
+  const { data, error } = await sb
+    .from('focus_days')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .eq('date', todayStr())
+    .single();
+
+  if (error || !data) return { pomodoros: 0, deep: 0, hours: 0 };
+  return data;
+}
+
+async function loadTodayLog() {
+  const { data } = await sb
+    .from('focus_sessions')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .eq('date', todayStr())
+    .order('created_at', { ascending: false })
+    .limit(30);
+  return data || [];
+}
+
+async function saveSession(type, credit) {
+  setSyncing(true);
+
+  // Upsert daily stats
+  const stats = await loadTodayStats();
+  const newStats = {
+    user_id: currentUser.id,
+    date: todayStr(),
+    pomodoros: stats.pomodoros + (type === 'pomodoro' ? 1 : 0),
+    deep: stats.deep + (type === 'deep' ? 1 : 0),
+    hours: Math.round((stats.hours + credit) * 10) / 10
+  };
+
+  await sb.from('focus_days').upsert(newStats, { onConflict: 'user_id,date' });
+
+  // Insert session log entry
+  await sb.from('focus_sessions').insert({
+    user_id: currentUser.id,
+    date: todayStr(),
+    type,
+    credit,
+    label: type === 'pomodoro' ? 'Pomodoro (25 min)' : 'Deep Work (52 min)',
+    time_str: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  });
+
+  setSyncing(false);
+  return newStats;
+}
+
+async function clearToday() {
+  if (!confirm("Clear all of today's sessions?")) return;
+  setSyncing(true);
+  await sb.from('focus_days').delete().eq('user_id', currentUser.id).eq('date', todayStr());
+  await sb.from('focus_sessions').delete().eq('user_id', currentUser.id).eq('date', todayStr());
+  setSyncing(false);
+  await refreshUI();
+}
+
+// ── TIMER LOGIC ────────────────────────────────
 function toggleTimer(mins) {
-  const t = timers[mins];
-  if (t.running) {
-    pauseTimer(mins);
-  } else {
-    startTimer(mins);
-  }
+  timers[mins].running ? pauseTimer(mins) : startTimer(mins);
 }
 
 function startTimer(mins) {
-  // Pause the other timer first
   const other = mins === 25 ? 52 : 25;
   if (timers[other].running) pauseTimer(other);
 
   const t = timers[mins];
   t.running = true;
-
-  const card = document.getElementById('card' + mins);
-  const btn  = document.getElementById('btn' + mins);
-  card.classList.add('running');
-  btn.textContent = 'Pause';
-
+  document.getElementById('card' + mins).classList.add('running');
+  document.getElementById('btn' + mins).textContent = 'Pause';
   t.interval = setInterval(() => tick(mins), 1000);
 }
 
@@ -574,11 +649,8 @@ function pauseTimer(mins) {
   const t = timers[mins];
   clearInterval(t.interval);
   t.running = false;
-
-  const card = document.getElementById('card' + mins);
-  const btn  = document.getElementById('btn' + mins);
-  card.classList.remove('running');
-  btn.textContent = 'Resume';
+  document.getElementById('card' + mins).classList.remove('running');
+  document.getElementById('btn' + mins).textContent = 'Resume';
 }
 
 function resetTimer(mins) {
@@ -586,81 +658,44 @@ function resetTimer(mins) {
   clearInterval(t.interval);
   t.running = false;
   t.remaining = t.total;
-
-  const card = document.getElementById('card' + mins);
-  const btn  = document.getElementById('btn' + mins);
-  card.classList.remove('running');
-  btn.textContent = 'Start';
-
-  renderRing(mins);
-  renderTime(mins);
+  document.getElementById('card' + mins).classList.remove('running');
+  document.getElementById('btn' + mins).textContent = 'Start';
+  renderRing(mins); renderTime(mins);
 }
 
 function tick(mins) {
   const t = timers[mins];
   t.remaining--;
-
-  renderRing(mins);
-  renderTime(mins);
-
-  if (t.remaining <= 0) {
-    finishSession(mins);
-  }
+  renderRing(mins); renderTime(mins);
+  if (t.remaining <= 0) finishSession(mins);
 }
 
-function finishSession(mins) {
-  const t = timers[mins];
-  clearInterval(t.interval);
-  t.running = false;
+async function finishSession(mins) {
+  clearInterval(timers[mins].interval);
+  timers[mins].running = false;
+  document.getElementById('card' + mins).classList.remove('running');
+  document.getElementById('btn' + mins).textContent = 'Start';
 
-  const card = document.getElementById('card' + mins);
-  const btn  = document.getElementById('btn' + mins);
-  card.classList.remove('running');
-  btn.textContent = 'Start';
-
-  // Credit
   const credit = mins === 25 ? 0.5 : 1.0;
-  const label  = mins === 25 ? 'Pomodoro (25 min)' : 'Deep Work (52 min)';
   const type   = mins === 25 ? 'pomodoro' : 'deep';
 
-  // Update storage
-  const data = loadData();
-  if (type === 'pomodoro') data.pomodoros++;
-  else data.deep++;
-  data.hours = Math.round((data.hours + credit) * 10) / 10;
-  const now = new Date();
-  data.log.unshift({
-    time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    label,
-    credit,
-    type
-  });
-  saveData(data);
-
-  // UI
-  renderStats(data);
-  renderLog(data.log);
+  const newStats = await saveSession(type, credit);
+  await refreshUI();
   resetTimer(mins);
-  showToast(mins, credit);
+  showToast(mins, credit, newStats.hours);
   playBeep();
 
-  // Browser notification
   if (Notification.permission === 'granted') {
     new Notification('Session Complete! 🎯', {
-      body: `${label} done · +${credit} hr logged`,
-      icon: ''
+      body: `${type === 'pomodoro' ? '25-min Pomodoro' : '52-min Deep Work'} done · +${credit} hr · Total: ${newStats.hours} hrs today`
     });
   }
 }
 
-// ──────────────────────────────────────────────
-//  RING & TIME RENDER
-// ──────────────────────────────────────────────
+// ── UI RENDER ──────────────────────────────────
 function renderRing(mins) {
   const t = timers[mins];
-  const pct = t.remaining / t.total;
-  const offset = CIRC * (1 - pct);
-  document.getElementById('ring' + mins).style.strokeDashoffset = offset;
+  document.getElementById('ring' + mins).style.strokeDashoffset = CIRC * (1 - t.remaining / t.total);
 }
 
 function renderTime(mins) {
@@ -670,15 +705,11 @@ function renderTime(mins) {
   document.getElementById('time' + mins).textContent = m + ':' + s;
 }
 
-// ──────────────────────────────────────────────
-//  STATS & LOG RENDER
-// ──────────────────────────────────────────────
-function renderStats(data) {
-  document.getElementById('statPomodoros').textContent = data.pomodoros;
-  document.getElementById('statDeep').textContent = data.deep;
-  document.getElementById('statHours').textContent = data.hours.toFixed(1);
-
-  const pct = Math.min(100, Math.round((data.hours / DAILY_TARGET) * 100));
+function renderStats(stats) {
+  document.getElementById('statPomodoros').textContent = stats.pomodoros || 0;
+  document.getElementById('statDeep').textContent = stats.deep || 0;
+  document.getElementById('statHours').textContent = (stats.hours || 0).toFixed(1);
+  const pct = Math.min(100, Math.round(((stats.hours || 0) / DAILY_TARGET) * 100));
   document.getElementById('progressFill').style.width = pct + '%';
   document.getElementById('progressPct').textContent = pct + '%';
 }
@@ -689,36 +720,39 @@ function renderLog(log) {
     list.innerHTML = '<div class="empty-log">No sessions yet — start a timer above</div>';
     return;
   }
-  list.innerHTML = log.map(entry => `
+  list.innerHTML = log.map(e => `
     <div class="log-item">
-      <div class="log-dot ${entry.type === 'pomodoro' ? 'blue' : 'gold'}"></div>
-      <span class="log-time">${entry.time}</span>
-      <span class="log-desc">${entry.label}</span>
-      <span class="log-credit">+${entry.credit} hr</span>
+      <div class="log-dot ${e.type === 'pomodoro' ? 'blue' : 'gold'}"></div>
+      <span class="log-time">${e.time_str}</span>
+      <span class="log-desc">${e.label}</span>
+      <span class="log-credit">+${e.credit} hr</span>
     </div>
   `).join('');
 }
 
-// ──────────────────────────────────────────────
-//  TOAST
-// ──────────────────────────────────────────────
-function showToast(mins, credit) {
+async function refreshUI() {
+  const [stats, log] = await Promise.all([loadTodayStats(), loadTodayLog()]);
+  renderStats(stats);
+  renderLog(log);
+}
+
+function setSyncing(on) {
+  const badge = document.getElementById('syncBadge');
+  badge.textContent = on ? '⟳ SYNCING' : '● SYNCED';
+  badge.className = 'sync-badge' + (on ? ' syncing' : '');
+}
+
+// ── TOAST ──────────────────────────────────────
+function showToast(mins, credit, totalHours) {
+  document.getElementById('toastIcon').textContent  = mins === 25 ? '🍅' : '🔥';
+  document.getElementById('toastTitle').textContent = mins === 25 ? 'Pomodoro Complete!' : 'Deep Block Complete!';
+  document.getElementById('toastMsg').textContent   = `+${credit} hr synced · Today: ${totalHours.toFixed(1)} hrs`;
   const toast = document.getElementById('toast');
-  const icon  = document.getElementById('toastIcon');
-  const title = document.getElementById('toastTitle');
-  const msg   = document.getElementById('toastMsg');
-
-  icon.textContent  = mins === 25 ? '🍅' : '🔥';
-  title.textContent = mins === 25 ? 'Pomodoro Complete!' : 'Deep Block Complete!';
-  msg.textContent   = `+${credit} hr logged · Total: ${loadData().hours.toFixed(1)} hrs today`;
-
   toast.classList.add('show');
   setTimeout(() => toast.classList.remove('show'), 4500);
 }
 
-// ──────────────────────────────────────────────
-//  AUDIO BEEP
-// ──────────────────────────────────────────────
+// ── BEEP ───────────────────────────────────────
 function playBeep() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -726,8 +760,7 @@ function playBeep() {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.value = 660;
-      osc.type = 'sine';
+      osc.frequency.value = 660; osc.type = 'sine';
       gain.gain.setValueAtTime(0.3, ctx.currentTime + delay);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.3);
       osc.start(ctx.currentTime + delay);
@@ -736,39 +769,59 @@ function playBeep() {
   } catch(e) {}
 }
 
-// ──────────────────────────────────────────────
-//  CLEAR TODAY
-// ──────────────────────────────────────────────
-function clearToday() {
-  if (!confirm('Clear all of today\'s session data?')) return;
-  localStorage.removeItem(todayKey());
-  const data = loadData();
-  renderStats(data);
-  renderLog(data.log);
+// ── REALTIME SYNC ──────────────────────────────
+function subscribeRealtime() {
+  sb.channel('focus_days_changes')
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'focus_days',
+      filter: `user_id=eq.${currentUser.id}`
+    }, () => refreshUI())
+    .subscribe();
 }
 
-// ──────────────────────────────────────────────
-//  INIT
-// ──────────────────────────────────────────────
-function init() {
-  // Date label
+// ── BOOT ───────────────────────────────────────
+async function boot() {
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (session?.user) {
+    currentUser = session.user;
+    showApp();
+  } else {
+    document.getElementById('loadingOverlay').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+  }
+
+  // Listen for auth changes (OAuth redirect)
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (session?.user && !currentUser) {
+      currentUser = session.user;
+      showApp();
+    }
+  });
+}
+
+async function showApp() {
+  const meta = currentUser.user_metadata || {};
+  document.getElementById('userName').textContent = meta.user_name || meta.full_name || 'User';
+  if (meta.avatar_url) document.getElementById('userAvatar').src = meta.avatar_url;
+
   document.getElementById('dateLabel').textContent =
     new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase();
 
-  // Request notification permission
-  if (Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
+  if (Notification.permission === 'default') Notification.requestPermission();
 
-  // Load and render saved data
-  const data = loadData();
-  renderStats(data);
-  renderLog(data.log);
+  await refreshUI();
+  subscribeRealtime();
+
   renderRing(25); renderTime(25);
   renderRing(52); renderTime(52);
+
+  document.getElementById('loadingOverlay').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
 }
 
-init();
+boot();
 </script>
 </body>
 </html>
