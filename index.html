@@ -551,7 +551,7 @@ let timers = {
 async function loginWithGitHub() {
   const { error } = await sb.auth.signInWithOAuth({
     provider: 'github',
-    options: { redirectTo: window.location.href }
+    options: { redirectTo: 'https://happyhaiabhi.github.io/Focusonstudy/focus-sync.html' }
   });
   if (error) alert('Login failed: ' + error.message);
 }
